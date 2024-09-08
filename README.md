@@ -6,12 +6,11 @@ This project is a **Document Validator System** designed to validate textual doc
 ## Table of Contents
 
 - [Project Structure](#project-structure)
+- [Configuration](#configuration)
 - [Design Patterns Used](#design-patterns-used)
 - [Prerequisites](#prerequisites)
 - [Usage](#usage)
-- [Database](#database)
 - [Running Tests](#running-tests)
-- [Modules](#modules)
 - [License](#license)
 
 ## Project Structure
@@ -30,6 +29,50 @@ This project is a **Document Validator System** designed to validate textual doc
 │   ├── doc_validator.py         # Core document validation logic
 │   └── validation_rules.py      # Validation rule builder and rule definitions
 └── tests/                       # Unit tests
+```
+
+## Configuration
+
+The application uses a `config.json` file to manage key configuration settings such as logging, database connections, and validation settings. 
+
+```json
+{
+  "database": {
+    "handler_class": "db.mongodb_handler.MongoDbHandler",
+    "host": "localhost",
+    "port": 27017,
+    "name": "document_validation",
+    "documents_table": "documents",
+    "discrepancies_table": "discrepancies"
+  },
+  "document_types": {
+    "HTML Table": {
+      "name_mask": "\\d+_table\\.html",
+      "params_required": [
+        {
+          "name": "N",
+          "type": "int",
+          "help": "The minimum length of the document title"
+        },
+        {
+          "name": "D",
+          "type": "lambda d: datetime.strptime(d, '%d%b%Y')",
+          "help": "The maximum value of the document creation date (formatting example: 3Feb2013)"
+        },
+        {
+          "name": "SUM",
+          "type": "int",
+          "help": "The maximum sum of the first table row"
+        }
+      ],
+      "template_class": "templates.html_table_template.HTMLTableTemplate"
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "app.log"
+  }
+}
 ```
 
 ### Design Patterns Used
@@ -57,13 +100,7 @@ The Fabric pattern is used in the `TemplateFactory` class to create templates fo
 - **Cons**:
   - Adds complexity.
 
-#### 3. Strategy Pattern
-The Strategy pattern is used in the implementation of the `extract_field_values` function of the `Template` class, allowing different strategies to be used for extracting values from document fields.
-
-- **Pros**:
-  - Promotes flexibility by allowing different extraction strategies to be used.
-
-#### 4. Builder Pattern
+#### 3. Builder Pattern
 The Builder pattern is used in the `ValidationRuleBuilder` class to construct a set of necessary validation rules in a step-by-step manner.
 
 - **Pros**:
@@ -73,6 +110,18 @@ The Builder pattern is used in the `ValidationRuleBuilder` class to construct a 
 - **Cons**:
   - Introduces more complexity with the need for additional builder classes.
   - Sometimes a specific sequence of validation rules is necessary.
+
+#### 4. Strategy Pattern
+The Strategy pattern is used in the `DocRuleBuilder` class to allow support for the custom validation rules.
+
+- **Pros**:
+  - The system can dynamically select different validation strategies based on the rule code, allowing for highly customizable behavior.
+  - The logic for how field values are validated is separated from the core processing logic, making it easier to extend or modify validation strategies.
+  
+- **Cons**:
+  - Code evaluation function is prone to code injection vulnerabilities.
+  - Lack of Type Safety: Runtime evaluation means no compile-time error checking.
+  - Difficult Debugging: Dynamic code is harder to debug and trace.
 
 #### 5. Chain of Responsibility Pattern
 The Chain of Responsibility pattern is used in the `FieldRuleBuilder` class to pass field data through a chain of validation checks.
@@ -84,6 +133,7 @@ The Chain of Responsibility pattern is used in the `FieldRuleBuilder` class to p
 - **Cons**:
   - Can make it difficult to track the validation flow.
   - Each validation in the chain can become a single point of failure, requiring careful error handling.
+  - Sometimes a specific sequence in the chain of rules is necessary.
 
 #### 6. Context Object Pattern
 The Context Object pattern is used in the `FieldContext` class to pass field and value information through the validations, encapsulating all the necessary data.
@@ -111,47 +161,23 @@ To run the document validation system:
 
 3. **Run the validator:**
 
-   ```bash
-   python main.py <document_folder> <--template_params>
-   ```
-
    Example:
 
    ```bash
    python main.py test-data/ --N 5 --D 10Mar2020 --SUM 1000
    ```
 
-   - `document_folder`: The folder where your documents are stored.
+   The parameters for running:
+   - The folder where the documents are stored.
    - Other dynamic parameters depending on the configuration.
 
 4. **Check Logs**: The system logs will be generated in the log file defined in `config.json`.
-
-## Database
-
-The application uses database parameters defined in `config.json` file. That includes the name of the database as well as collections of documents and discrepancies. 
 
 ## Running Tests
 
 Unfortunately unit tests are not available at the moment.
 
 
-## Modules
-
-### `main.py`
-- The main entry point of the application. Handles argument parsing and orchestrates document validation through the `DocumentValidator` objects.
-
-### `db/`
-- `db_handlers.py`: General database operations.
-- `mongodb_handler.py`: MongoDB-specific operations, handling the storage of documents and discrepancies.
-
-### `templates/`
-- `factory.py`: Manages the document templates.
-- `html_table_template.py`: Maintains the template for HTML table documents.
-
-### `validation/`
-- `doc_validator.py`: Implements the core validation logic for documents. It interacts with templates and applies validation rules.
-- `validation_rules.py`: Contains the `ValidationRuleBuilder` that allows dynamic creation of validation rules.
-
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
+This project is licensed under the MIT License. 
