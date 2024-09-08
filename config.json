@@ -1,0 +1,37 @@
+{
+  "database": {
+    "handler_class": "db.mongodb_handler.MongoDbHandler",
+    "host": "localhost",
+    "port": 27017,
+    "name": "document_validation",
+    "documents_table": "documents",
+    "discrepancies_table": "discrepancies"
+  },
+  "document_types": {
+    "HTML Table": {
+      "name_mask": "\\d+_table\\.html",
+      "params_required": [
+        {
+          "name": "N",
+          "type": "int",
+          "help": "The minimum length of the document title"
+        },
+        {
+          "name": "D",
+          "type": "lambda d: datetime.strptime(d, '%d%b%Y')",
+          "help": "The maximum value of the document creation date (formatting example: 3Feb2013)"
+        },
+        {
+          "name": "SUM",
+          "type": "int",
+          "help": "The maximum sum of the first table row"
+        }
+      ],
+      "template_class": "templates.html_table_template.HTMLTableTemplate"
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "app.log"
+  }
+}
